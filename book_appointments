@@ -1,0 +1,46 @@
+<?php
+include 'includes/db.php';
+
+// Obtenir la date et l'heure actuelles
+$current_date = date('Y-m-d');
+$current_time = date('H:i');
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Récupérer les données du formulaire
+    $agent_name = $_POST['agent_name'];
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $phone = $_POST['phone'];
+    $day = $_POST['day'];
+    $appointment_hour = $_POST['hour'];
+
+    // Formater la date au format YYYY-MM-DD
+    $day_formatted = date('Y-m-d', strtotime($day));
+
+    // Extraire l'heure de début et de fin du créneau
+    list($start_hour, $end_hour) = explode('-', $appointment_hour);
+    
+    // Vérifier si la date est valide et n'est pas dans le passé
+    if ($day_formatted < $current_date || ($day_formatted == $current_date && $start_hour < date('H'))) {
+        echo "Erreur : Impossible de prendre rendez-vous pour une date passée ou un créneau horaire passé.";
+        exit();
+    }
+
+    // Insérer le rendez-vous dans la base de données
+    $conn = getDbConnection();
+    $stmt = $conn->prepare('INSERT INTO appointments (agent_name, name, email, phone, date, creneau) VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->bind_param('ssssss', $agent_name, $name, $email, $phone, $day_formatted, $appointment_hour);
+
+    if ($stmt->execute()) {
+        // Rediriger vers appointments.php avec un message de confirmation
+        header("Location: appointments.php?success=true");
+        exit();
+    } else {
+        // En cas d'erreur, afficher un message d'erreur
+        echo "Erreur lors de la prise de rendez-vous : " . $conn->error;
+    }
+} else {
+    // Si la méthode de requête n'est pas POST, afficher un message d'erreur
+    echo "Erreur : Le formulaire doit être soumis via la méthode POST.";
+}
+?>
