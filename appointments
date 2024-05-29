@@ -1,0 +1,75 @@
+<?php
+session_start();
+include 'includes/db.php';
+include 'includes/header.php';
+
+// Récupérer les informations de l'utilisateur à partir de la session
+$user_id = $_SESSION['user_id'];
+$conn = getDbConnection();
+$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$user_result = $stmt->get_result();
+$user = $user_result->fetch_assoc();
+
+// Récupérer les rendez-vous de l'utilisateur
+$stmt = $conn->prepare("SELECT * FROM appointments WHERE user_id = ?");
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$appointments_result = $stmt->get_result();
+
+// Récupérer les annonces favorites de l'utilisateur
+$stmt = $conn->prepare("SELECT properties.* FROM favorites JOIN properties ON favorites.property_id = properties.id WHERE favorites.user_id = ?");
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$favorites_result = $stmt->get_result();
+?>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Mon compte
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <a class="dropdown-item" href="#">Mes informations</a>
+                    <a class="dropdown-item" href="#">Mes rendez-vous</a>
+                    <a class="dropdown-item" href="#">Mes annonces favorites</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <!-- Contenu de la page -->
+            <h1>Bienvenue sur votre compte, <?php echo $user['username']; ?>!</h1>
+            <h2>Mes informations :</h2>
+            <p>Nom d'utilisateur : <?php echo $user['username']; ?></p>
+            <p>Email : <?php echo $user['email']; ?></p>
+
+            <h2>Mes rendez-vous :</h2>
+            <ul>
+                <?php while ($appointment = $appointments_result->fetch_assoc()): ?>
+                    <li><?php echo $appointment['date']; ?> - <?php echo $appointment['description']; ?></li>
+                <?php endwhile; ?>
+            </ul>
+
+            <h2>Mes annonces favorites :</h2>
+            <div class="row">
+                <?php while ($favorite = $favorites_result->fetch_assoc()): ?>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="<?php echo $favorite['image']; ?>" class="card-img-top" alt="...">
+                            <div class="card-body">
+                                <h5 class="card-title"><?php echo $favorite['title']; ?></h5>
+                                <p class="card-text"><?php echo $favorite['description']; ?></p>
+                                <a href="property_details.php?id=<?php echo $favorite['id']; ?>" class="btn btn-primary">Voir détails</a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include 'includes/footer.php'; ?>
